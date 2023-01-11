@@ -2,9 +2,12 @@ package bank.semicolon.services.accountService;
 
 import bank.semicolon.data.model.Account;
 import bank.semicolon.data.model.AccountType;
-import bank.semicolon.dtos.accountDto.requests.*;
-import bank.semicolon.dtos.accountDto.responses.*;
-import bank.semicolon.exception.accountException.*;
+import bank.semicolon.dto.accountDto.requests.*;
+import bank.semicolon.dto.accountDto.responses.*;
+import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
+import bank.semicolon.exception.accountException.IllegalAccountUpdateArgument;
+import bank.semicolon.exception.accountException.IllegalTransferAmountArgument;
+import bank.semicolon.exception.accountException.IllegalWithdrawAmountArgument;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,9 +44,9 @@ class AccountServiceImplTest {
     @Test
     void findAccountTest() throws IllegalAccountReadArgument {
         try {
-            Account savedAza = accountService.findAccount("5875517028");
+            Account savedAza = accountService.findAccount("1799260915");
             //assertNotEquals(savedAza.getAccountNumber(),"5875517028");
-            assertNull(savedAza);
+            assertNotNull(savedAza);
 
         }catch (IllegalAccountReadArgument e){
             System.out.println(e.getMessage());
@@ -55,13 +58,13 @@ class AccountServiceImplTest {
     @Test
     void makeDeposit_updateAccountBalance() throws IllegalAccountReadArgument {
         BigDecimal depositAmount = new BigDecimal("500000.0");
-        DepositAmountRequest amountRequest = new DepositAmountRequest(depositAmount,"4857392706");
+        DepositAmountRequest amountRequest = new DepositAmountRequest(depositAmount,"4857392706","0000");
         try{
            DepositAmountResponse amountResponse = accountService.deposit(amountRequest);
 
             assertEquals(depositAmount,amountResponse.getAmount());
             assertEquals("Deposit successful",amountResponse.getMessage());
-        }catch (IllegalAccountReadArgument e){
+        }catch (Exception e){
             System.out.println(e.getMessage());
         }
     }
@@ -69,7 +72,7 @@ class AccountServiceImplTest {
     @Test
     void updateAccountType() throws IllegalAccountReadArgument, IllegalAccountUpdateArgument {
         UpdateAccountRequest updateAccountRequest = new UpdateAccountRequest(AccountType.CURRENT,"4857392706");
-        UpdateAccountResponse  accountResponse = new UpdateAccountResponse();
+        UpdateAccountResponse accountResponse = new UpdateAccountResponse();
 
         try {
             accountResponse = accountService.updateAccountType(updateAccountRequest);
@@ -83,7 +86,7 @@ class AccountServiceImplTest {
 
     @Test
     void transferMoneyTest() throws IllegalAccountReadArgument, IllegalTransferAmountArgument {
-        AccountTransferRequest transferRequest = new AccountTransferRequest("4857392706","1599510064",new BigDecimal("200000.0"));
+        AccountTransferRequest transferRequest = new AccountTransferRequest("4857392706","0000","1599510064",new BigDecimal("200000.0"));
         AccountTransferResponse accountTransferResponse = new AccountTransferResponse();
 
         try {
@@ -99,7 +102,7 @@ class AccountServiceImplTest {
 
     @Test
     void withdrawFundsTest() throws IllegalWithdrawAmountArgument, IllegalAccountReadArgument {
-        WithdrawAmountRequest withdrawAmountRequest = new WithdrawAmountRequest("4857392706",new BigDecimal("200000"));
+        WithdrawAmountRequest withdrawAmountRequest = new WithdrawAmountRequest("4857392706","0000",new BigDecimal("200000"));
         try {
             WithdrawAmountResponse amountResponse = accountService.withdrawal(withdrawAmountRequest);
             assertEquals(amountResponse.getAccountNumber(),"4857392706");
@@ -111,7 +114,7 @@ class AccountServiceImplTest {
 
     @Test
     void showBalanceTest() throws IllegalUserReadArgument, IllegalAccountReadArgument {
-       AccountBalanceRequest balanceRequest = new AccountBalanceRequest("1599510064");
+       AccountBalanceRequest balanceRequest = new AccountBalanceRequest("1599510064","0000");
 
        try {
            AccountBalanceResponse balanceResponse = accountService.showBalance(balanceRequest);
@@ -125,7 +128,7 @@ class AccountServiceImplTest {
 
     @Test
     void deleteAccountTest() throws IllegalAccountReadArgument {
-        DeleteAccountRequest deleteAccountRequest = new DeleteAccountRequest("5875517028");
+        DeleteAccountRequest deleteAccountRequest = new DeleteAccountRequest("3632572306");
        try {
            DeleteAccountResponse deleteAccountResponse = accountService.blockAccount(deleteAccountRequest);
            assertEquals("Account blocked successfully",deleteAccountResponse.getMessage());
@@ -133,7 +136,18 @@ class AccountServiceImplTest {
        }catch (Exception e){
            System.out.println(e.getMessage());
        }
-
     }
 
-}
+    @Test
+    void updateAccountPinTest() {
+        ChangeAccountPinRequest accountPinRequest = new ChangeAccountPinRequest("0000", "2020", "2020", "5876764360");
+        ChangeAccountPinResponse accountPinResponse = new ChangeAccountPinResponse();
+        try {
+            accountPinResponse = accountService.changePin(accountPinRequest);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        assertEquals(accountPinResponse.getAccountNumber(),"5876764360");
+
+    }
+    }

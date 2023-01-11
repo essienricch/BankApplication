@@ -16,7 +16,7 @@ public class User {
 
 
     @DBRef
-    private List<Account> accounts;
+    private List<Account> accounts = new ArrayList<>();
     private String firstName;
     private String lastName;
 
@@ -29,14 +29,13 @@ public class User {
 
 
     public User(){
-        this.accounts = new ArrayList<>();
     }
 
     public void addAccount(Account account){
        accounts.add(account);
     }
 
-    public void removeAccount(Account account){
+    public  void removeAccount(Account account){
         accounts.removeIf(savedAccount -> savedAccount.equals(account));
     }
 

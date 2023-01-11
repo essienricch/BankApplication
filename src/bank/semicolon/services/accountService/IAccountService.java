@@ -1,11 +1,11 @@
 package bank.semicolon.services.accountService;
 
 import bank.semicolon.data.model.Account;
-import bank.semicolon.data.model.User;
-import bank.semicolon.dtos.accountDto.requests.*;
-import bank.semicolon.dtos.accountDto.responses.*;
+import bank.semicolon.dto.accountDto.requests.*;
+import bank.semicolon.dto.accountDto.responses.*;
 import bank.semicolon.exception.accountException.*;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
+
 
 import java.util.List;
 
@@ -15,6 +15,7 @@ public interface IAccountService {
     Account findAccount(String accountNumber) throws IllegalAccountReadArgument;
     List <Account> findAllAccounts();
     Account updateAccount(Account account);
+    ChangeAccountPinResponse changePin(ChangeAccountPinRequest accountPinRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument;
 
     UpdateAccountResponse updateAccountType(UpdateAccountRequest updateAccountRequest) throws IllegalAccountReadArgument, IllegalAccountUpdateArgument;
     DeleteAccountResponse blockAccount(DeleteAccountRequest deleteAccountRequest) throws IllegalAccountReadArgument;

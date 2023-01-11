@@ -16,7 +16,7 @@ import java.security.SecureRandom;
 public class Account {
 
 
-
+    private String accountPin;
     private  String emailAddress;
     @Getter
     @Id
@@ -30,6 +30,7 @@ public class Account {
         this.accountType = accountType;
         this.accountNumber = "";
         this.emailAddress = emailAddress;
+        this.accountPin = "0000";
     }
 
 

@@ -3,9 +3,8 @@ package bank.semicolon.services.accountService;
 import bank.semicolon.data.model.Account;
 import bank.semicolon.data.model.User;
 import bank.semicolon.data.repositories.AccountRepository;
-import bank.semicolon.data.repositories.UserRepository;
-import bank.semicolon.dtos.accountDto.requests.*;
-import bank.semicolon.dtos.accountDto.responses.*;
+import bank.semicolon.dto.accountDto.requests.*;
+import bank.semicolon.dto.accountDto.responses.*;
 import bank.semicolon.exception.accountException.*;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
 import bank.semicolon.services.userService.UserServiceImpl;
@@ -25,8 +24,6 @@ public class AccountServiceImpl implements IAccountService{
     @Autowired
     private UserServiceImpl userService;
 
-    @Autowired
-    private UserRepository userRepository;
 
 //    @Override
 //    public CreateAccountResponse createAccount(CreateAccountRequest createAccountRequest) throws IllegalAccountCreationArgument {
@@ -61,6 +58,30 @@ public class AccountServiceImpl implements IAccountService{
     @Override
     public Account updateAccount(Account account) {
         return accountRepository.save(account);
+    }
+
+    @Override
+    public ChangeAccountPinResponse changePin(ChangeAccountPinRequest accountPinRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument {
+        ChangeAccountPinResponse accountPinResponse = new ChangeAccountPinResponse();
+        if (passwordMatch(accountPinRequest.getNewPin(), accountPinRequest.getConfirmNewPin())) {
+            Account savedAccount = findAccount(accountPinRequest.getAccountNumber());
+            if (savedAccount != null) {
+                if (pinMatch(savedAccount, accountPinRequest.getOldPin())) {
+                    savedAccount.setAccountPin(accountPinRequest.getNewPin());
+                    accountPinResponse.setAccountNumber(savedAccount.getAccountNumber());
+                    accountPinResponse.setMessage("Pin change successful");
+                    return accountPinResponse;
+                }else throw new IllegalChangeOfPinArgument("Pin Incorrect");
+            }else throw new IllegalAccountReadArgument("Account not found");
+        }else throw new IllegalChangeOfPinArgument("Pin does not match");
+    }
+
+
+    private boolean passwordMatch(String newPin, String confirmNewPin){
+        return newPin.equals(confirmNewPin);
+    }
+    private boolean pinMatch(Account account, String oldPin){
+        return account.getAccountPin().equals(oldPin);
     }
 
     @Override
@@ -103,13 +124,14 @@ public class AccountServiceImpl implements IAccountService{
     public AccountBalanceResponse showBalance(AccountBalanceRequest accountBalanceRequest) throws IllegalAccountReadArgument, IllegalUserReadArgument {
         Account saveAccount = findAccount(accountBalanceRequest.getAccountNumber());
         if (saveAccount != null){
-            User savedUser = userService.findUserByEmail(saveAccount.getEmailAddress());
-            AccountBalanceResponse balanceResponse = new AccountBalanceResponse();
-               balanceResponse.setMessage( saveAccount.toString(savedUser));
-               balanceResponse.setAccountBalance(saveAccount.getBalance());
-               balanceResponse.setAccountNumber(saveAccount.getAccountNumber());
+            if (pinMatch(saveAccount,accountBalanceRequest.getPinCode())) {
+                User savedUser = userService.findUserByEmail(saveAccount.getEmailAddress());
+                AccountBalanceResponse balanceResponse = new AccountBalanceResponse();
+                balanceResponse.setMessage(saveAccount.toString(savedUser));
+                balanceResponse.setAccountBalance(saveAccount.getBalance());
+                balanceResponse.setAccountNumber(saveAccount.getAccountNumber());
                 return balanceResponse;
-
+            }else throw new IllegalAccountReadArgument("Incorrect pin");
         }else throw new IllegalAccountReadArgument("Account does not exist");
 
     }
@@ -120,30 +142,33 @@ public class AccountServiceImpl implements IAccountService{
         Account senderAccount = findAccount(accountTransferRequest.getSenderAccountNumber());
         Account receiverAccount = findAccount(accountTransferRequest.getReceiverAccountNumber());
         if (receiverAccount != null && senderAccount != null){
-           BigDecimal amountTransferred = senderAccount.transfer(accountTransferRequest.getTransferAmount());
-            if (amountTransferred != null){
+            if (pinMatch(senderAccount,accountTransferRequest.getPinCode())){
+               BigDecimal amountTransferred = senderAccount.transfer(accountTransferRequest.getTransferAmount());
+                if (amountTransferred != null){
 
-                receiverAccount.topAmount(amountTransferred);
-                updateAccount(senderAccount);
-                updateAccount(receiverAccount);
+                    receiverAccount.topAmount(amountTransferred);
+                    updateAccount(senderAccount);
+                    updateAccount(receiverAccount);
 
-               transferResponse.setTransferAmount(accountTransferRequest.getTransferAmount());
-               transferResponse.setMessage("Transfer Successful");
-               return transferResponse;
+                   transferResponse.setTransferAmount(accountTransferRequest.getTransferAmount());
+                   transferResponse.setMessage("Transfer Successful");
+                   return transferResponse;
+                }else throw new IllegalTransferAmountArgument("Pin incorrect");
             }else throw new IllegalTransferAmountArgument("Transfer not complete, Balance is less than transfer amount");
         }else throw new IllegalAccountReadArgument("Invalid Account Request");
     }
 
-     public DepositAmountResponse deposit(DepositAmountRequest depositAmountRequest) throws IllegalAccountReadArgument {
+     public DepositAmountResponse deposit(DepositAmountRequest depositAmountRequest) throws IllegalAccountReadArgument, IllegalDepositArgument {
         Account newAza = findAccount(depositAmountRequest.getAccountNumber());
         if (newAza != null){
-//            newAza.setBalance(depositAmountRequest.getDepositAmount());
-            newAza.topAmount(depositAmountRequest.getDepositAmount());
-            updateAccount(newAza);
-            DepositAmountResponse depositAmountResponse = new DepositAmountResponse();
-            depositAmountResponse.setAmount(depositAmountRequest.getDepositAmount());
-            depositAmountResponse.setMessage("Deposit successful");
-            return depositAmountResponse;
+            if (pinMatch(newAza,depositAmountRequest.getPinCode())){
+                newAza.topAmount(depositAmountRequest.getDepositAmount());
+                updateAccount(newAza);
+                DepositAmountResponse depositAmountResponse = new DepositAmountResponse();
+                depositAmountResponse.setAmount(depositAmountRequest.getDepositAmount());
+                depositAmountResponse.setMessage("Deposit successful");
+                return depositAmountResponse;
+            }else throw new IllegalDepositArgument("Pin incorrect");
         }else throw new IllegalAccountReadArgument(" Transaction not complete,   Account does not exist");
     }
 
@@ -151,6 +176,7 @@ public class AccountServiceImpl implements IAccountService{
     public WithdrawAmountResponse withdrawal(WithdrawAmountRequest withdrawAmountRequest) throws IllegalAccountReadArgument, IllegalWithdrawAmountArgument {
         Account recipientAccount = findAccount(withdrawAmountRequest.getAccountNumber());
         if (recipientAccount != null){
+            if (pinMatch(recipientAccount, withdrawAmountRequest.getPinCode())){
            BigDecimal confirmWithdrawAmount = recipientAccount.withdrawAmount(withdrawAmountRequest.getWithdrawAmount());
             if (confirmWithdrawAmount != null){
                 updateAccount(recipientAccount);
@@ -159,6 +185,7 @@ public class AccountServiceImpl implements IAccountService{
                 withdrawAmountResponse.setAccountNumber(recipientAccount.getAccountNumber());
                 withdrawAmountResponse.setMessage("Withdrawal successful");
                 return withdrawAmountResponse;
+            }else throw new IllegalWithdrawAmountArgument("Incorrect pin");
             }else throw new IllegalWithdrawAmountArgument("Cant complete transaction. Withdrawal amount is greater than balance");
         }else throw new IllegalAccountReadArgument("Invalid Account");
     }

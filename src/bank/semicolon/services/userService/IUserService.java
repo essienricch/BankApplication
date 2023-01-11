@@ -1,10 +1,11 @@
 package bank.semicolon.services.userService;
 
-import bank.semicolon.data.model.Account;
 import bank.semicolon.data.model.User;
-import bank.semicolon.dtos.userDto.requests.*;
-import bank.semicolon.dtos.userDto.responses.*;
+import bank.semicolon.dto.userDto.requests.*;
+import bank.semicolon.dto.userDto.responses.*;
+
 import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
+import bank.semicolon.exception.accountException.IllegalChangeOfPinArgument;
 import bank.semicolon.exception.userException.IllegalUserLoginArgumentException;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
 import bank.semicolon.exception.userException.IllegalUserSignUpArgumentException;
@@ -16,7 +17,7 @@ public interface IUserService {
     UserSignUpResponse userSignUp(UserSignUpRequest userSignUpRequest) throws IllegalUserSignUpArgumentException;
     UserLoginResponse userLogin(UserLoginRequest userLoginRequest) throws IllegalUserLoginArgumentException, IllegalUserReadArgument;
     UserAddAccountResponse userCreateAccount(UserAddAccountRequest userAddAccountRequest) throws IllegalUserReadArgument, IllegalAccountReadArgument;
-
+    UserSetAccountPinAccessResponse setAccountPin(UserSetAccountPinAccessRequest setAccountPinAccessRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument;
     UserRemoveAccountResponse removeAccount(UserRemoveAccountRequest userRemoveAccount) throws IllegalUserReadArgument, IllegalAccountReadArgument;
 
     UserDeleteResponse deleteUser(UserDeleteRequest deleteRequest) throws IllegalUserReadArgument;

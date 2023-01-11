@@ -4,9 +4,10 @@ import bank.semicolon.data.model.Account;
 import bank.semicolon.data.model.User;
 import bank.semicolon.data.repositories.AccountRepository;
 import bank.semicolon.data.repositories.UserRepository;
-import bank.semicolon.dtos.userDto.requests.*;
-import bank.semicolon.dtos.userDto.responses.*;
+import bank.semicolon.dto.userDto.requests.*;
+import bank.semicolon.dto.userDto.responses.*;
 import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
+import bank.semicolon.exception.accountException.IllegalChangeOfPinArgument;
 import bank.semicolon.exception.userException.IllegalUserLoginArgumentException;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
 import bank.semicolon.exception.userException.IllegalUserSignUpArgumentException;
@@ -86,6 +87,26 @@ public class UserServiceImpl implements IUserService{
                     accountResponse.setMessage("Account Created");
                     return accountResponse;
         }else throw new IllegalAccountReadArgument("User mot found");
+    }
+
+    @Override
+    public UserSetAccountPinAccessResponse setAccountPin(UserSetAccountPinAccessRequest setAccountPinAccessRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument {
+        UserSetAccountPinAccessResponse setAccountPinAccessResponse = new UserSetAccountPinAccessResponse();
+        if (pinMatch(setAccountPinAccessRequest.getPin(), setAccountPinAccessRequest.getConfirmPin())){
+          for (Account savedAccount : accountRepository.findAccountByAccountNumber(setAccountPinAccessRequest.getAccountNumber())){
+               if (savedAccount.getAccountNumber().equals(setAccountPinAccessRequest.getAccountNumber())){
+                   savedAccount.setAccountPin(setAccountPinAccessRequest.getPin());
+                   setAccountPinAccessResponse.setAccountNumber(savedAccount.getAccountNumber());
+                   setAccountPinAccessResponse.setMessage("Pin set successful");
+                   return setAccountPinAccessResponse;
+               }else throw new IllegalAccountReadArgument("Account does not exist");
+          }
+        }else throw new IllegalChangeOfPinArgument("Pin does not match");
+        return null;
+    }
+
+    private boolean pinMatch(String pin, String confirmPin){
+        return pin.equals(confirmPin);
     }
 
     @Override

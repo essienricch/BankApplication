@@ -2,12 +2,11 @@ package bank.semicolon.services.userService;
 
 import bank.semicolon.data.model.AccountType;
 import bank.semicolon.data.model.User;
-import bank.semicolon.dtos.userDto.requests.*;
-import bank.semicolon.dtos.userDto.responses.*;
+import bank.semicolon.dto.userDto.requests.*;
+import bank.semicolon.dto.userDto.responses.*;
 import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
 import bank.semicolon.exception.userException.IllegalUserLoginArgumentException;
 import bank.semicolon.exception.userException.IllegalUserReadArgument;
-import bank.semicolon.exception.userException.IllegalUserSignUpArgumentException;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +23,7 @@ class UserServiceImplTest {
 
     @Test
     void signUpUserTest()  {
-        UserSignUpRequest userSignUpRequest = new UserSignUpRequest("babyKendrick@2022","2023","2023");
+        UserSignUpRequest userSignUpRequest = new UserSignUpRequest("wisdom2021","2023","2023");
         UserSignUpResponse userSignUpResponse = new UserSignUpResponse();
 
         try {
@@ -33,8 +32,8 @@ class UserServiceImplTest {
             System.out.println(exception.getMessage());
         }
         System.out.println(userSignUpResponse.getMessage());
-        assertNull(userSignUpResponse.getEmailAddress());
-        //assertEquals(userSignUpResponse.getEmailAddress(),"babyKendrick@2022");
+        assertNotNull(userSignUpResponse.getEmailAddress());
+        assertEquals(userSignUpResponse.getEmailAddress(),"wisdom2021");
     }
 
     @Test
@@ -74,7 +73,7 @@ class UserServiceImplTest {
 
     @Test
     void userAddAccount_countIsOneTest() throws IllegalUserReadArgument, IllegalAccountReadArgument {
-        UserAddAccountRequest addAccountRequest = new UserAddAccountRequest(AccountType.SAVINGS,"dan122");
+        UserAddAccountRequest addAccountRequest = new UserAddAccountRequest(AccountType.SAVINGS,"wisdom2021");
         UserAddAccountResponse userAddAccountResponse = new UserAddAccountResponse();
         try {
             userAddAccountResponse = userService.userCreateAccount(addAccountRequest);
@@ -82,7 +81,20 @@ class UserServiceImplTest {
             System.out.println(e.getMessage());
         }
         System.out.println(userAddAccountResponse.getAccountNumber());
-        assertEquals(4, userAddAccountResponse.getAccountSize());
+        assertNotNull(userAddAccountResponse.getAccountNumber());
+        assertEquals(1, userAddAccountResponse.getAccountSize());
+    }
+
+    @Test
+    void setAccountPinTest(){
+        UserSetAccountPinAccessResponse setAccountPinAccessResponse = new UserSetAccountPinAccessResponse();
+        UserSetAccountPinAccessRequest setAccountPinAccessRequest = new UserSetAccountPinAccessRequest("5876764360","0020","0020");
+        try {
+            setAccountPinAccessResponse = userService.setAccountPin(setAccountPinAccessRequest);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        assertNotNull(setAccountPinAccessResponse.getAccountNumber());
     }
 
     @Test
