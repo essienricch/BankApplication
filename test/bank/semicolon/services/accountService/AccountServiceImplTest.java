@@ -4,11 +4,14 @@ import bank.semicolon.data.model.Account;
 import bank.semicolon.data.model.AccountType;
 import bank.semicolon.dto.accountDto.requests.*;
 import bank.semicolon.dto.accountDto.responses.*;
+import bank.semicolon.dto.accountDto.requests.UserAddAccountRequest;
+import bank.semicolon.dto.accountDto.requests.UserRemoveAccountRequest;
+import bank.semicolon.dto.accountDto.requests.UserSetAccountPinAccessRequest;
+import bank.semicolon.dto.accountDto.responses.UserAddAccountResponse;
+import bank.semicolon.dto.accountDto.responses.UserRemoveAccountResponse;
+import bank.semicolon.dto.accountDto.responses.UserSetAccountPinAccessResponse;
 import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
-import bank.semicolon.exception.accountException.IllegalAccountUpdateArgument;
-import bank.semicolon.exception.accountException.IllegalTransferAmountArgument;
-import bank.semicolon.exception.accountException.IllegalWithdrawAmountArgument;
-import bank.semicolon.exception.userException.IllegalUserReadArgument;
+import bank.semicolon.exception.userException.UserNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,7 +59,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void makeDeposit_updateAccountBalance() throws IllegalAccountReadArgument {
+    void makeDeposit_updateAccountBalance() {
         BigDecimal depositAmount = new BigDecimal("500000.0");
         DepositAmountRequest amountRequest = new DepositAmountRequest(depositAmount,"4857392706","0000");
         try{
@@ -70,7 +73,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void updateAccountType() throws IllegalAccountReadArgument, IllegalAccountUpdateArgument {
+    void updateAccountType()  {
         UpdateAccountRequest updateAccountRequest = new UpdateAccountRequest(AccountType.CURRENT,"4857392706");
         UpdateAccountResponse accountResponse = new UpdateAccountResponse();
 
@@ -85,7 +88,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void transferMoneyTest() throws IllegalAccountReadArgument, IllegalTransferAmountArgument {
+    void transferMoneyTest() {
         AccountTransferRequest transferRequest = new AccountTransferRequest("4857392706","0000","1599510064",new BigDecimal("200000.0"));
         AccountTransferResponse accountTransferResponse = new AccountTransferResponse();
 
@@ -101,7 +104,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void withdrawFundsTest() throws IllegalWithdrawAmountArgument, IllegalAccountReadArgument {
+    void withdrawFundsTest() {
         WithdrawAmountRequest withdrawAmountRequest = new WithdrawAmountRequest("4857392706","0000",new BigDecimal("200000"));
         try {
             WithdrawAmountResponse amountResponse = accountService.withdrawal(withdrawAmountRequest);
@@ -113,7 +116,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void showBalanceTest() throws IllegalUserReadArgument, IllegalAccountReadArgument {
+    void showBalanceTest() throws UserNotFoundException, IllegalAccountReadArgument {
        AccountBalanceRequest balanceRequest = new AccountBalanceRequest("1599510064","0000");
 
        try {
@@ -150,4 +153,45 @@ class AccountServiceImplTest {
         assertEquals(accountPinResponse.getAccountNumber(),"5876764360");
 
     }
+
+    @Test
+    void setAccountPinTest(){
+        UserSetAccountPinAccessResponse setAccountPinAccessResponse = new UserSetAccountPinAccessResponse();
+        UserSetAccountPinAccessRequest setAccountPinAccessRequest = new UserSetAccountPinAccessRequest("5876764360","0020","0020");
+        try {
+            setAccountPinAccessResponse = accountService.setAccountPin(setAccountPinAccessRequest);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        assertNotNull(setAccountPinAccessResponse.getAccountNumber());
+    }
+
+    @Test
+    void userAddAccount_countIsOneTest() throws UserNotFoundException, IllegalAccountReadArgument {
+        UserAddAccountRequest addAccountRequest = new UserAddAccountRequest(AccountType.SAVINGS,"wisdom2022");
+        UserAddAccountResponse userAddAccountResponse = new UserAddAccountResponse();
+        try {
+            userAddAccountResponse = accountService.userCreateAccount(addAccountRequest);
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+        System.out.println(userAddAccountResponse.getAccountNumber());
+        assertNotNull(userAddAccountResponse.getAccountNumber());
+        assertEquals(4, userAddAccountResponse.getAccountSize());
+    }
+
+
+    @Test
+    void removeAccount_countIsZeroTest() throws UserNotFoundException, IllegalAccountReadArgument {
+        UserRemoveAccountRequest removeAccountRequest = new UserRemoveAccountRequest("dan122","2354461404");
+        try {
+            UserRemoveAccountResponse response = accountService.removeAccount(removeAccountRequest);
+            assertEquals(3, response.getCount());
+            assertEquals(response.getEmailAddress(),"dan122");
+
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
     }

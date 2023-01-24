@@ -1,32 +1,33 @@
 package bank.semicolon.services.userService;
 
-import bank.semicolon.data.model.User;
+import bank.semicolon.data.model.User_Entity;
+import bank.semicolon.dto.userDto.requests.UpdateUserRequest;
+import bank.semicolon.dto.userDto.responses.UpdateUserResponse;
 import bank.semicolon.dto.userDto.requests.*;
 import bank.semicolon.dto.userDto.responses.*;
 
-import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
-import bank.semicolon.exception.accountException.IllegalChangeOfPinArgument;
-import bank.semicolon.exception.userException.IllegalUserLoginArgumentException;
-import bank.semicolon.exception.userException.IllegalUserReadArgument;
-import bank.semicolon.exception.userException.IllegalUserSignUpArgumentException;
+import bank.semicolon.exception.userException.RoleNotFoundException;
+import bank.semicolon.exception.userException.UserNotFoundException;
+import bank.semicolon.exception.userException.UserServiceException;
 
 import java.util.List;
 
 public interface IUserService {
 
-    UserSignUpResponse userSignUp(UserSignUpRequest userSignUpRequest) throws IllegalUserSignUpArgumentException;
-    UserLoginResponse userLogin(UserLoginRequest userLoginRequest) throws IllegalUserLoginArgumentException, IllegalUserReadArgument;
-    UserAddAccountResponse userCreateAccount(UserAddAccountRequest userAddAccountRequest) throws IllegalUserReadArgument, IllegalAccountReadArgument;
-    UserSetAccountPinAccessResponse setAccountPin(UserSetAccountPinAccessRequest setAccountPinAccessRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument;
-    UserRemoveAccountResponse removeAccount(UserRemoveAccountRequest userRemoveAccount) throws IllegalUserReadArgument, IllegalAccountReadArgument;
+    UserSignUpResponse registerUser(UserSignUpRequest userSignUpRequest) throws UserServiceException, RoleNotFoundException;
+    UserLoginResponse userLogin(UserLoginRequest userLoginRequest)
+            throws UserServiceException, UserNotFoundException;
 
-    UserDeleteResponse deleteUser(UserDeleteRequest deleteRequest) throws IllegalUserReadArgument;
 
-    int listOfAccount(String emailAddress) throws IllegalUserReadArgument;
+
+    UserDeleteResponse deleteUser(UserDeleteRequest deleteRequest) throws UserNotFoundException;
+
+    UpdateUserResponse updateUser(UpdateUserRequest updateUserRequest) throws UserNotFoundException;
+
     long count();
 
-    User findOneUser(String emailAddress);
+    User_Entity findOneUser(String emailAddress) throws UserNotFoundException;
 
-    User findUserByEmail(String emailAddress) throws IllegalUserReadArgument;
-    List <User> findAllUsers();
+    FindUserResponse findUserByEmail(String emailAddress) throws UserNotFoundException;
+    List <User_Entity> findAllUsers();
 }

@@ -4,15 +4,16 @@ package bank.semicolon.data.model;
 
 import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 
 
-
+@NoArgsConstructor
 @Data
-@Document
+@Document(collection = "account")
 public class Account {
 
 
@@ -42,13 +43,13 @@ public class Account {
     }
 
 
-    public String toString(User user){
+    public String toString(User_Entity userEntity){
         return String.format("""
                             Account-Name:  %s%5s
                             Account-Number: %s
                             Account-Type:  %s
                             Account Balance:  %s
-                            """,user.getFirstName(),user.getLastName(),getAccountNumber(),getAccountType(),getBalance());
+                            """, userEntity.getFirstName(), userEntity.getLastName(),getAccountNumber(),getAccountType(),getBalance());
     }
 
     public void topAmount(BigDecimal amount){

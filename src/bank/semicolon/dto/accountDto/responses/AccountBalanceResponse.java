@@ -9,6 +9,6 @@ public class AccountBalanceResponse {
 
     private String accountNumber;
     private BigDecimal accountBalance;
-    private String message;
+    private String account_Holder;
 
 }

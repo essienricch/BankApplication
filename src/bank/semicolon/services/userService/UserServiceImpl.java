@@ -1,53 +1,85 @@
 package bank.semicolon.services.userService;
 
 import bank.semicolon.data.model.Account;
-import bank.semicolon.data.model.User;
-import bank.semicolon.data.repositories.AccountRepository;
+import bank.semicolon.data.model.Role;
+import bank.semicolon.data.model.User_Entity;
+import bank.semicolon.data.repositories.RoleRepository;
 import bank.semicolon.data.repositories.UserRepository;
+import bank.semicolon.dto.accountDto.responses.GetAccountResponse;
+import bank.semicolon.dto.userDto.requests.UpdateUserRequest;
+import bank.semicolon.dto.userDto.responses.UpdateUserResponse;
 import bank.semicolon.dto.userDto.requests.*;
 import bank.semicolon.dto.userDto.responses.*;
-import bank.semicolon.exception.accountException.IllegalAccountReadArgument;
-import bank.semicolon.exception.accountException.IllegalChangeOfPinArgument;
-import bank.semicolon.exception.userException.IllegalUserLoginArgumentException;
-import bank.semicolon.exception.userException.IllegalUserReadArgument;
-import bank.semicolon.exception.userException.IllegalUserSignUpArgumentException;
+import bank.semicolon.exception.userException.RoleNotFoundException;
+import bank.semicolon.exception.userException.UserNotFoundException;
+import bank.semicolon.exception.userException.UserServiceException;
+import bank.semicolon.security.SecurityConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 public class UserServiceImpl implements IUserService{
 
 
-    @Autowired
+    private RoleRepository roleRepository;
+    private SecurityConfig config;
     private UserRepository userRepository;
-
     @Autowired
-    private AccountRepository accountRepository;
+    public UserServiceImpl(UserRepository userRepository,
+                           RoleRepository roleRepository,
+                           SecurityConfig config) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.config = config;
+    }
+
+
 
     @Override
-    public UserSignUpResponse userSignUp(UserSignUpRequest userSignUpRequest) throws IllegalUserSignUpArgumentException {
+    public UserSignUpResponse registerUser(UserSignUpRequest userSignUpRequest)throws UserServiceException {
         UserSignUpResponse userSignUpResponse = new UserSignUpResponse();
-        User user = new User();
+        User_Entity userEntity = new User_Entity();
         if (passwordMatch(userSignUpRequest)){
             if (!userRepository.existsById(userSignUpRequest.getEmailAddress())){
-                user.setFirstName(userSignUpRequest.getFirstName());
-                user.setLastName(userSignUpRequest.getLastName());
-                user.setEmailAddress(userSignUpRequest.getEmailAddress());
-                user.setPassword(userSignUpRequest.getPassword());
-
-                userRepository.save(user);
-
-                userSignUpResponse.setEmailAddress(user.getEmailAddress());
-                userSignUpResponse.setMessage("Congratulations, your sign-up was successful");
-                return userSignUpResponse;
-
-            }else throw new IllegalUserSignUpArgumentException("User E-mail Exist already");
+                Role role = roleRepository.findByRoleName("USER");
+                return register(userSignUpRequest, userSignUpResponse, userEntity, role);
+            }else throw new UserServiceException(" E-mail already Exist");
         }else {
-            throw new IllegalUserSignUpArgumentException("Password does not match...");
+            throw new UserServiceException("Password does not match...");
         }
+    }
+
+    public UserSignUpResponse registerAdmin(UserSignUpRequest userSignUpRequest) throws  UserServiceException, RoleNotFoundException {
+        UserSignUpResponse userSignUpResponse = new UserSignUpResponse();
+        User_Entity userEntity = new User_Entity();
+        if (passwordMatch(userSignUpRequest)){
+            if (!userRepository.existsById(userSignUpRequest.getEmailAddress())){
+                Role role = roleRepository.findByRoleName("ADMIN");
+                return register(userSignUpRequest, userSignUpResponse, userEntity, role);
+
+            }else throw new UserServiceException(" E-mail already Exist");
+        }else {
+            throw new UserServiceException("Password does not match...");
+        }
+    }
+
+    private UserSignUpResponse register(UserSignUpRequest userSignUpRequest,
+                                        UserSignUpResponse userSignUpResponse,
+                                        User_Entity userEntity, Role role) {
+        userEntity.addRole(role);
+        userEntity.setFirstName(userSignUpRequest.getFirstName());
+        userEntity.setLastName(userSignUpRequest.getLastName());
+        userEntity.setEmailAddress(userSignUpRequest.getEmailAddress());
+        userEntity.setPassword(config.passwordEncoder().encode(userSignUpRequest.getPassword()));
+        User_Entity user = userRepository.save(userEntity);
+
+        userSignUpResponse.setEmailAddress(user.getEmailAddress());
+        userSignUpResponse.setMessage("Congratulations, your sign-up was successful");
+        return userSignUpResponse;
     }
 
     private boolean passwordMatch(UserSignUpRequest userSignUpRequest){
@@ -55,99 +87,70 @@ public class UserServiceImpl implements IUserService{
     }
 
     @Override
-    public UserLoginResponse userLogin(UserLoginRequest userLoginRequest) throws IllegalUserLoginArgumentException, IllegalUserReadArgument {
+    public UserLoginResponse userLogin(UserLoginRequest userLoginRequest) throws UserServiceException, UserNotFoundException {
         UserLoginResponse loginResponse = new UserLoginResponse();
 
-        User savedUser = findUserByEmail(userLoginRequest.getEmailAddress());
-        if (savedUser != null){
-            if (validatePassword(userLoginRequest.getPassword(), savedUser)){
-               loginResponse.setEmailAddress(savedUser.getEmailAddress());
+        User_Entity savedUserEntity = findOneUser(userLoginRequest.getEmailAddress());
+        if (savedUserEntity != null){
+            if (validatePassword(userLoginRequest.getPassword(), savedUserEntity)){
+               loginResponse.setEmailAddress(savedUserEntity.getEmailAddress());
                loginResponse.setMessage("Login Successful");
                return loginResponse;
-            }else throw new IllegalUserLoginArgumentException("Password Incorrect");
+            }else throw new UserServiceException("Password Incorrect");
         }
-        throw new IllegalUserLoginArgumentException("User E-mail does not exists");
+        throw new UserServiceException("User_Entity E-mail does not exists");
     }
 
-    private boolean validatePassword(String password, User user){
-        return password.equals(user.getPassword());
+    private boolean validatePassword(String password, User_Entity userEntity){
+        return config.passwordEncoder().matches(password,userEntity.getPassword());
     }
 
-    @Override
-    public UserAddAccountResponse userCreateAccount(UserAddAccountRequest userAddAccountRequest) throws IllegalUserReadArgument, IllegalAccountReadArgument {
-        User savedUser = findUserByEmail(userAddAccountRequest.getEmailAddress());
-        UserAddAccountResponse accountResponse = new UserAddAccountResponse();
-        if (savedUser != null){
-            Account newAccount = new Account(userAddAccountRequest.getAccountType(), userAddAccountRequest.getEmailAddress());
-                    newAccount.generateAccountNumber();
-                    accountRepository.save(newAccount);
-                    savedUser.addAccount(newAccount);
-                    accountResponse.setAccountSize(listOfAccount(savedUser.getEmailAddress()));
-                    accountResponse.setAccountNumber(newAccount.getAccountNumber());
-                    accountResponse.setMessage("Account Created");
-                    return accountResponse;
-        }else throw new IllegalAccountReadArgument("User mot found");
-    }
 
     @Override
-    public UserSetAccountPinAccessResponse setAccountPin(UserSetAccountPinAccessRequest setAccountPinAccessRequest) throws IllegalAccountReadArgument, IllegalChangeOfPinArgument {
-        UserSetAccountPinAccessResponse setAccountPinAccessResponse = new UserSetAccountPinAccessResponse();
-        if (pinMatch(setAccountPinAccessRequest.getPin(), setAccountPinAccessRequest.getConfirmPin())){
-          for (Account savedAccount : accountRepository.findAccountByAccountNumber(setAccountPinAccessRequest.getAccountNumber())){
-               if (savedAccount.getAccountNumber().equals(setAccountPinAccessRequest.getAccountNumber())){
-                   savedAccount.setAccountPin(setAccountPinAccessRequest.getPin());
-                   setAccountPinAccessResponse.setAccountNumber(savedAccount.getAccountNumber());
-                   setAccountPinAccessResponse.setMessage("Pin set successful");
-                   return setAccountPinAccessResponse;
-               }else throw new IllegalAccountReadArgument("Account does not exist");
-          }
-        }else throw new IllegalChangeOfPinArgument("Pin does not match");
-        return null;
-    }
-
-    private boolean pinMatch(String pin, String confirmPin){
-        return pin.equals(confirmPin);
-    }
-
-    @Override
-    public UserRemoveAccountResponse removeAccount(UserRemoveAccountRequest userRemoveAccount) throws IllegalUserReadArgument, IllegalAccountReadArgument {
-        UserRemoveAccountResponse accountResponse = new UserRemoveAccountResponse();
-        User savedUser = findUserByEmail(userRemoveAccount.getEmailAddress());
-        if (savedUser != null){
-            for(Account savedAccount : accountRepository.findAccountByAccountNumber(userRemoveAccount.getAccountNumber())){
-                if (savedAccount.getAccountNumber().equals(userRemoveAccount.getAccountNumber()) ){
-                    accountRepository.delete(savedAccount);
-                    savedUser.removeAccount(savedAccount);
-                    accountResponse.setCount(listOfAccount(savedUser.getEmailAddress()));
-                    accountResponse.setEmailAddress(savedUser.getEmailAddress());
-                    accountResponse.setMessage("Account removed");
-                    return accountResponse;
-                }else throw new IllegalAccountReadArgument("Account does not exist");
-            }
-        }else throw new IllegalUserReadArgument("User does not exist");
-        return null;
-    }
-
-    @Override
-    public UserDeleteResponse deleteUser(UserDeleteRequest deleteRequest) throws IllegalUserReadArgument {
-        User user = findOneUser(deleteRequest.getEmailAddress());
+    public UserDeleteResponse deleteUser(UserDeleteRequest deleteRequest) throws UserNotFoundException {
+        User_Entity userEntity = findOneUser(deleteRequest.getEmailAddress());
         UserDeleteResponse deleteResponse = new UserDeleteResponse();
-        if (user != null){
-            userRepository.delete(user);
+        if (userEntity != null){
+            userRepository.delete(userEntity);
             deleteResponse.setMessage("Delete successful");
-        }else throw new IllegalUserReadArgument("User not found");
+        }else throw new UserNotFoundException("User_Entity not found");
         return null;
     }
 
     @Override
-    public int listOfAccount(String emailAddress) {
-        int count = 0;
-       for (Account account: accountRepository.findAll()){
-           if (account.getEmailAddress().equals(emailAddress)){
-               count++;
-           }
-       }return count;
+    public UpdateUserResponse updateUser(UpdateUserRequest updateUserRequest) throws UserNotFoundException {
+       UpdateUserResponse updateUserResponse = new UpdateUserResponse();
+        User_Entity savedUser = findOneUser(updateUserRequest.getEmailAddress());
+        if (savedUser != null){
+            if (validatePassword(updateUserRequest.getOldPassword(), savedUser)){
+                savedUser.setFirstName(updateUserRequest.getFirstName());
+                savedUser.setLastName(updateUserRequest.getLastName());
+                savedUser.setPassword(config.passwordEncoder().encode(updateUserRequest.getNewPassword()));
+                savedUser.setEmailAddress(updateUserRequest.getEmailAddress());
+
+                User_Entity updatedUser =  userRepository.save(savedUser);
+                updateUserResponse.setFirstName(updatedUser.getFirstName());
+                updateUserResponse.setLastName(updatedUser.getLastName());
+                updateUserResponse.setEmailAddress(updatedUser.getEmailAddress());
+               updateUserResponse.setAccountList(mapToAccountDto(updatedUser.getAccounts()));
+                updateUserResponse.setMessage("Update Successful");
+                return updateUserResponse;
+            }else throw new UserServiceException("Incorrect Password");
+        }else throw new UserNotFoundException("User not found");
     }
+
+    private List <Account> mapToAccountDto(List <Account> accounts){
+        return accounts.stream().map(this::mapAcct).collect(Collectors.toList());
+    }
+
+    private Account mapAcct(Account account){
+        Account acctDto = new Account();
+        acctDto.setAccountNumber(account.getAccountNumber());
+        acctDto.setAccountType(account.getAccountType());
+        acctDto.setBalance(account.getBalance());
+        return acctDto;
+    }
+
 
     @Override
     public long count() {
@@ -155,27 +158,48 @@ public class UserServiceImpl implements IUserService{
     }
 
     @Override
-    public User findUserByEmail(String emailAddress) throws IllegalUserReadArgument {
+    public FindUserResponse findUserByEmail(String emailAddress) throws UserNotFoundException {
+        FindUserResponse userResponse = new FindUserResponse();
         if (userRepository.existsById(emailAddress)){
-            for (User user: userRepository.findUserByEmailAddress(emailAddress)){
-                if (user.getEmailAddress().equals(emailAddress)){
-                    return user;
+            for (User_Entity userEntity : userRepository.findUserByEmailAddress(emailAddress)){
+                if (userEntity.getEmailAddress().equals(emailAddress)){
+                    userResponse.setAccounts(
+                            userEntity.getAccounts().
+                                    stream().
+                                    map(acct ->
+                                            GetAccountResponse.builder()
+                                                    .accountNumber(acct.getAccountNumber())
+                                                    .accountType(acct.getAccountType())
+                                                    .build())
+                                    .collect(Collectors.toList())
+                    );
+                    userResponse.setEmailAddress(userEntity.getEmailAddress());
+                    userResponse.setFirstName(userEntity.getFirstName());
+                    userResponse.setLastName(userEntity.getLastName());
+                    userResponse.setMessage("You got served...");
+                    return userResponse;
                 }
             }
-        }else throw new IllegalUserReadArgument("User not found");
+        }else throw new UserNotFoundException("User_Entity not found");
         return null;
     }
 
-    public User findOneUser(String emailAddress){
-        for (User user : findAllUsers()){
-            if (user.getEmailAddress().equals(emailAddress)){
-                return user;
-            }
-        }return null;
+    public User_Entity findOneUser(String emailAddress) throws UserNotFoundException {
+        return userRepository.findUser_EntitiesByEmailAddress(emailAddress);
     }
 
     @Override
-    public List<User> findAllUsers() {
-        return userRepository.findAll();
+    public List<User_Entity> findAllUsers() {
+        List <User_Entity> userEntities = userRepository.findAll();
+        return userEntities.stream().map(this::mapAcct).collect(Collectors.toList());
+    }
+
+    private User_Entity mapAcct(User_Entity user){
+        User_Entity user_entity = new User_Entity();
+        user_entity.setFirstName(user.getFirstName());
+        user_entity.setLastName(user.getLastName());
+        user_entity.setEmailAddress(user.getEmailAddress());
+        user_entity.setAccounts(mapToAccountDto(user.getAccounts()));
+        return user_entity;
     }
 }

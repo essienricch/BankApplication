@@ -17,6 +17,7 @@
     <properties>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
+<!--        <spring-security.version>5.3.4.RELEASE</spring-security.version>-->
     </properties>
 
     <dependencies>
@@ -28,8 +29,14 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
         <dependency>
@@ -44,6 +51,27 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
     </dependencies>
 
+    <build>
+    <plugins>
+    <plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <configuration>
+    <excludes>
+    <exclude>
+    <groupId>org.project_lombok</groupId>
+    <artifactId>lombok</artifactId>
+</exclude>
+</excludes>
+</configuration>
+</plugin>
+</plugins>
+</build>
 </project>
